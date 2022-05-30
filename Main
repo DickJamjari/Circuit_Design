@@ -4,6 +4,12 @@ reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지
 reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
 reg active_h, active_v; // active pixel 상태를 나타내기 위한 레지스터 선언
 
+
+// 8ns 신호를 25MHz로 변환하는 과정 필요! 
+
+
+
+// 25MHz 신호 인가하여 사용하기..
 always @(posedge clk or posedge rst) begin
     if (rst == 1) begin  // rst 신호 인가 시 두 카운터 초기화 
         counter_h <= 0;
@@ -22,13 +28,13 @@ always @(*) begin // counter_h의 변화에 따른 active 상태 지정
 			counter_h = counter_h + 1; 
 			active_h = 0;
 			hsync = 1; 
-		end else if (counter_h >= 16  && counter_h < 655) begin
+		end else if (counter_h >= 16  && counter_h < 655) begin // active pixel의 범위 
 			counter_h = counter_h + 1;
 			active_h = 1;
-		end else if (counter_h >= 655 && counter_h < 703) begin
+		end else if (counter_h >= 655 && counter_h < 703) begin // back porch
 			counter_h = counter_h + 1;
 			active_h = 0;
-		end else if (counter_h >= 703 && counter_h < 799) begin
+		end else if (counter_h >= 703 && counter_h < 799) begin // sync width
 			counter_h = counter_h + 1;
 			active_h = 0; // 생략 가능? 
 			hsync = 0;
@@ -36,18 +42,20 @@ always @(*) begin // counter_h의 변화에 따른 active 상태 지정
 end
 
 always @(*) begin // counter_v의 변화에 따른 active 상태 지정 
-		if(counter_v >= 0 && couonter_v < 9) begin
+		if(counter_v >= 0 && couonter_v < 9) begin // vertical front pixel 
 			counter_v = counter_v + 1;
 			active_v = 0;
 			vsync = 1;  // 초기 지정, 마지막 pw 이전까지 항상 1 유지할 것으로 예상! 
-		end else if (counter_v >= 9 && counter_v < 489) begin
+		end else if (counter_v >= 9 && counter_v < 489) begin // vertical active pixel 
 			counter_v = counter_v + 1;
 			active_v = 1;
-		end else if (counter_v >= 489 && counter_v < 522) begin
+		end else if (counter_v >= 489 && counter_v < 522) begin // vertical back porch
 			counter_v = counter_v + 1;
 			active_v = 0;
-		end else if (counter_v >= 522 && counter_v < 524) begin
+		end else if (counter_v >= 522 && counter_v < 524) begin // vertical sync width 
 			counter_v = counter_v + 1;
 			vsync = 0;
 		end
 end
+
+

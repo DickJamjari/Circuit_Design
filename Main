@@ -1,5 +1,5 @@
-// 위를 기반으로 새로운 코드 작성
-module Display_counter(input rst, input clk, output hsync, output vsync, output [7:0]r, output [7:0]g, output [7:0]b);
+// 640 * 480 해상도의 Display Controller 만들기_1 
+module Display_controller(input rst, input clk, output hsync, output vsync, output [7:0]r, output [7:0]g, output [7:0]b);
 reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지정 
 reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
 reg active_h, active_v; // active pixel 상태를 나타내기 위한 레지스터 선언

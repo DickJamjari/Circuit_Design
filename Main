@@ -23,7 +23,7 @@ always @(posedge clk or posedge rst) begin
 		end
 end
 
-always @(*) begin // counter_h의 변화에 따른 active 상태 지정 
+always @(*) begin // counter_h의 변화에 따른 active 상태 지정 + 현모 front porch pixel이 16개인데 counter_h < 16이 맞지않음? 
 		if (counter_h >= 0 && counter_h < 15) begin // front porch 일 때
 			counter_h = counter_h + 1; 
 			active_h = 0;

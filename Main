@@ -58,4 +58,6 @@ always @(*) begin // counter_v의 변화에 따른 active 상태 지정
 		end
 end
 
+// 각 pixel에 rgb값 할당하기 
+
 

@@ -1,0 +1,53 @@
+// 위를 기반으로 새로운 코드 작성
+module Display_counter(input rst, input clk, output hsync, output vsync, output [7:0]r, output [7:0]g, output [7:0]b);
+reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지정 
+reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
+reg active_h, active_v; // active pixel 상태를 나타내기 위한 레지스터 선언
+
+always @(posedge clk or posedge rst) begin
+    if (rst == 1) begin  // rst 신호 인가 시 두 카운터 초기화 
+        counter_h <= 0;
+				counter_v <= 0;
+		end else if (counter_h < 799) begin // counter_h 끝 도달시 다음 줄로 이동
+				counter_h <= 0; 
+				counter_v <= counter_v + 1;
+		end else if (counter_v < 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
+				counter_h <= 0;
+				counter_v <= 0;
+		end
+end
+
+always @(*) begin // counter_h의 변화에 따른 active 상태 지정 
+		if (counter_h >= 0 && counter_h < 15) begin // front porch 일 때
+			counter_h = counter_h + 1; 
+			active_h = 0;
+			hsync = 1; 
+		end else if (counter_h >= 16  && counter_h < 655) begin
+			counter_h = counter_h + 1;
+			active_h = 1;
+		end else if (counter_h >= 655 && counter_h < 703) begin
+			counter_h = counter_h + 1;
+			active_h = 0;
+		end else if (counter_h >= 703 && counter_h < 799) begin
+			counter_h = counter_h + 1;
+			active_h = 0; // 생략 가능? 
+			hsync = 0;
+		end
+end
+
+always @(*) begin // counter_v의 변화에 따른 active 상태 지정 
+		if(counter_v >= 0 && couonter_v < 9) begin
+			counter_v = counter_v + 1;
+			active_v = 0;
+			vsync = 1;  // 초기 지정, 마지막 pw 이전까지 항상 1 유지할 것으로 예상! 
+		end else if (counter_v >= 9 && counter_v < 489) begin
+			counter_v = counter_v + 1;
+			active_v = 1;
+		end else if (counter_v >= 489 && counter_v < 522) begin
+			counter_v = counter_v + 1;
+			active_v = 0;
+		end else if (counter_v >= 522 && counter_v < 524) begin
+			counter_v = counter_v + 1;
+			vsync = 0;
+		end
+end

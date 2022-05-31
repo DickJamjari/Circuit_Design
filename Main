@@ -11,10 +11,10 @@ always @(posedge clk or posedge rst) begin
     if (rst == 1) begin  // rst 신호 인가 시 두 카운터 초기화 
         counter_h <= 0;
 				counter_v <= 0;
-		end else if (counter_h < 799) begin // counter_h 끝 도달시 다음 줄로 이동
+		end else if (counter_h >= 799) begin // counter_h 끝 도달시 다음 줄로 이동
 				counter_h <= 0; 
 				counter_v <= counter_v + 1;
-		end else if (counter_v < 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
+		end else if (counter_v >= 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
 				counter_h <= 0;
 				counter_v <= 0;
 				rgb_counter <= rgb_counter + 1;

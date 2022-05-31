@@ -1,3 +1,24 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2022/05/30 19:01:58
+// Design Name: 
+// Module Name: VGA_display
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
 // 640 * 480 해상도의 Display Controller 만들기_1 
 module Display_controller(input rst, input clk, output hsync, output vsync, output reg [7:0]r, output reg [7:0]g, output reg [7:0]b);
 reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지정 
@@ -8,79 +29,86 @@ reg [1:0] rgb_counter; // rgb 값 할당을 위한 rgb 카운터 선언
 
 // 8ns 신호를 25MHz로 변환하는 과정 --> 교수님이 모듈 제공해준다고 하셨음 
 always @(posedge clk or posedge rst) begin
-    if (rst == 1) begin  // rst 신호 인가 시 두 카운터 초기화 
-        counter_h <= 0;
-	counter_v <= 0;
-	rgb_counter <= 0;
-    end else if (counter_h >= 799) begin // counter_h 끝 도달시 다음 줄로 이동
-	counter_h <= 0; 
-	counter_v <= counter_v + 1;
-    end else if (counter_v >= 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
-	counter_h <= 0;
-	counter_v <= 0;
-	rgb_counter <= rgb_counter + 1;
-    end
+    if (rst == 1) begin  // rst 신호 인가 시 초기화 
+      counter_h <= 0;
+      counter_v <= 0;
+      rgb_counter <= 0;
+      vsync <= 0;
+      hsync <=0;
+   end else if (counter_h >= 'd799) begin // counter_h 끝 도달시 다음 줄로 이동
+   	counter_h <= 0; 
+  	counter_v <= counter_v + 1;
+   end else if (counter_v >= 'd524) begin // counter_v 끝 도달시 원점으로 초기화, 동시에 rgb 카운터 하나 증가시킴 
+   	counter_h <= 0;
+   	counter_v <= 0;
+   	rgb_counter <= rgb_counter + 1;
+   end else if (rgb_counter == 'd3) begin // rgb 카운터가 3에 도달시 초기화 
+      	rgb_counter <= 0;
+   end
 end
 
-always @(*) begin // counter_h의 변화에 따른 active 상태 지정, + front porch pixel이 16개인데 counter_h < 16이 맞지않음? 
-		if (counter_h >= 0 && counter_h < 15) begin // front porch 일 때
-			counter_h = counter_h + 1; 
-			active_h = 0;
-			hsync = 1; 
-		end else if (counter_h >= 16  && counter_h < 655) begin // active pixel의 범위 
-			counter_h = counter_h + 1;
-			active_h = 1;
-		end else if (counter_h >= 655 && counter_h < 703) begin // back porch
-			counter_h = counter_h + 1;
-			active_h = 0;
-		end else if (counter_h >= 703 && counter_h < 799) begin // sync width
-			counter_h = counter_h + 1;
-			active_h = 0; // 생략 가능? 
-			hsync = 0;
-		end
+always @(posedge clk) begin		// 가로 한 줄 진행하는 과정
+   if (counter_h < 'd799) begin
+      counter_h <= counter_h + 1;
+      if (counter_h >= 'd0 && counter_h < 'd15) begin		// front porch 발생 시 
+         hsync <= 1; 
+         active_h <= 0;
+      end else if(counter_h >= 'd15 && counter_h < 'd655) begin		// active pixel 영역
+         hsync <= 1;
+         active_h <= 1;
+      end else if(counter_h >= 'd655 && counter_h < 'd703) begin	// back porch 발생
+         hsync <= 1;
+         active_h <= 0;
+      end else if (counter_h >= 'd703) begin	// sync width 고려 
+         hsync <= 0;
+         active_h <= 0;
+      end
+end
 end
 
-always @(*) begin // counter_v의 변화에 따른 active 상태 지정 
-		if(counter_v >= 0 && couonter_v < 9) begin // vertical front pixel 
-			counter_v = counter_v + 1;
-			active_v = 0;
-			vsync = 1;  // 초기 지정, 마지막 pw 이전까지 항상 1 유지할 것으로 예상! 
-		end else if (counter_v >= 9 && counter_v < 489) begin // vertical active pixel 
-			counter_v = counter_v + 1;
-			active_v = 1;
-		end else if (counter_v >= 489 && counter_v < 522) begin // vertical back porch
-			counter_v = counter_v + 1;
-			active_v = 0;
-		end else if (counter_v >= 522 && counter_v < 524) begin // vertical sync width 
-			counter_v = counter_v + 1;
-			vsync = 0;
-		end
+always @(posedge clk) begin		// 세로 한 줄 진행하는 과정 
+   if (counter_v < 'd524) begin		// 가로 한 줄 완주시 세로 한 줄이 더해지는 과정이므로, 이 문단에서 덧셈 수행하지 않음. 
+      if (counter_v >= 'd0 && counter_v < 'd9) begin		// front porch 발생
+         vsync <= 1;
+         active_v <= 0;
+      end else if (counter_v >= 'd9 && counter_v < 'd489) begin		// active pixel 영역
+         vsync <= 1;
+         active_v <= 1;
+      end else if (counter_v >= 'd489 && counter_v < 'd522) begin	// back porch 영역
+         vsync <= 1;
+         active_v <= 0;
+      end else if (counter_v >= 'd522) begin		// sync width 고려
+         vsync <= 0;
+         active_v <= 0;
+      end
+end
 end
 
-//active가 1일 경우에 rgb 할당하기  
+// active_h, active_v가 모두 high인 pixel 영역에 rgb 값 대입. 
+// 초기 red상태로 640 * 480 수행
+// 한 바퀴 완주 후 green 상태로 640*480 수행
+// 이후 반복. 
 always @(*) begin
-	if(active_h == 1 && active_v == 1) begin
-		case(rgb_counter)
-		    2'b00: begin
-        		r = 255;
-        		g = 0;
-        		b = 0;
-		     end 2'b01: begin
-			r = 0;
-			g = 255;
-			b = 0;
-		     end 2'b10: begin
-			r = 0;
-			g = 0;
-			b = 255;
-		     end 2'b11: begin
-		     	rgb_counter = 0;
-		     end
-		endcase
-	end else begin
-		r = 0;
-		g = 0;
-		b = 0;
-	end
+   if(active_h == 1 && active_v == 1) begin
+      case(rgb_counter)
+          2'b00: begin
+              r = 'd255;
+              g = 0;
+              b = 0;
+           end 2'b01: begin
+         r = 0;
+         g = 'd255;
+         b = 0;
+           end 2'b10: begin
+         r = 0;
+         g = 0;
+         b = 'd255;
+           end
+      endcase
+   end else begin
+      r = 0;
+      g = 0;
+      b = 0;
+   end
 end
 endmodule

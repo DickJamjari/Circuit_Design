@@ -10,15 +10,16 @@ reg [1:0] rgb_counter; // rgb 값 할당을 위한 rgb 카운터 선언
 always @(posedge clk or posedge rst) begin
     if (rst == 1) begin  // rst 신호 인가 시 두 카운터 초기화 
         counter_h <= 0;
-				counter_v <= 0;
-		end else if (counter_h >= 799) begin // counter_h 끝 도달시 다음 줄로 이동
-				counter_h <= 0; 
-				counter_v <= counter_v + 1;
-		end else if (counter_v >= 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
-				counter_h <= 0;
-				counter_v <= 0;
-				rgb_counter <= rgb_counter + 1;
-		end
+	counter_v <= 0;
+	rgb_counter <= 0;
+    end else if (counter_h >= 799) begin // counter_h 끝 도달시 다음 줄로 이동
+	counter_h <= 0; 
+	counter_v <= counter_v + 1;
+    end else if (counter_v >= 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
+	counter_h <= 0;
+	counter_v <= 0;
+	rgb_counter <= rgb_counter + 1;
+    end
 end
 
 always @(*) begin // counter_h의 변화에 따른 active 상태 지정, + front porch pixel이 16개인데 counter_h < 16이 맞지않음? 
@@ -64,14 +65,16 @@ always @(*) begin
         		r = 255;
         		g = 0;
         		b = 0;
-		     end 2'b01 begin
+		     end 2'b01: begin
 			r = 0;
 			g = 255;
 			b = 0;
-		     end 2'b10; begin
+		     end 2'b10: begin
 			r = 0;
 			g = 0;
 			b = 255;
+		     end 2'b11: begin
+		     	rgb_counter = 0;
 		     end
 		endcase
 	end else begin

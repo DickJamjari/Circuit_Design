@@ -1,8 +1,9 @@
 // 640 * 480 해상도의 Display Controller 만들기_1 
-module Display_controller(input rst, input clk, output hsync, output vsync, output [7:0]r, output [7:0]g, output [7:0]b);
+module Display_controller(input rst, input clk, output hsync, output vsync, output reg [7:0]r, output reg [7:0]g, output reg [7:0]b);
 reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지정 
 reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
 reg active_h, active_v; // active pixel 상태를 나타내기 위한 레지스터 선언
+reg [1:0] rgb_counter; // rgb 값 할당을 위한 rgb 카운터 선언 
 
 
 // 8ns 신호를 25MHz로 변환하는 과정 필요! 
@@ -20,6 +21,7 @@ always @(posedge clk or posedge rst) begin
 		end else if (counter_v < 525) begin // counter_v 끝 도달시 원점으로 초기화. + 여기는 20D인가 20C인가? 
 				counter_h <= 0;
 				counter_v <= 0;
+				rgb_counter <= rgb_counter + 1;
 		end
 end
 
@@ -59,5 +61,22 @@ always @(*) begin // counter_v의 변화에 따른 active 상태 지정
 end
 
 // 각 pixel에 rgb값 할당하기 
+always @(*) begin
+	case(rgb_counter)
+		2'b00: begin
+       		 r = 255;
+       		 g = 0;
+        	 b = 0;
+	       end 2'b01 begin
+        	r = 0;
+        	g = 255;
+        	b = 0;
+     	      end 2'b10; begin
+        	r = 0;
+        	g = 0;
+        	b = 255;
+     	     end
+       endcase
+end
 
 

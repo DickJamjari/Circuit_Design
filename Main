@@ -58,12 +58,12 @@ end
 
 //active가 1일 경우에 rgb 할당하기  
 always @(*) begin
-	if(active_h == 1 or active_v == 1) begin
+	if(active_h == 1 && active_v == 1) begin
 		case(rgb_counter)
-			2'b00: begin
-        			r = 255;
-        			g = 0;
-        			b = 0;
+		    2'b00: begin
+        		r = 255;
+        		g = 0;
+        		b = 0;
 		     end 2'b01 begin
 			r = 0;
 			g = 255;
@@ -74,10 +74,10 @@ always @(*) begin
 			b = 255;
 		     end
 		endcase
-		end else begin
-			r = 0;
-			g = 0;
-			b = 0;
-		end
+	end else begin
+		r = 0;
+		g = 0;
+		b = 0;
+	end
 end
 endmodule

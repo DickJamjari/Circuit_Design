@@ -1,0 +1,142 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2022/06/13 12:11:23
+// Design Name: 
+// Module Name: display_controller
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module display_controller(input rst, input clk, input[1:0] btn, output hsync, output vsync, output reg [7:0]r, output reg [7:0]g, output reg [7:0]b, output reg active); // 모듈의 입출력 선언 
+reg vsync, hsync;               // procedural assignment에서 대입을 위해 reg 타입 지정 
+reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
+reg active_h, active_v;         // active pixel 상태를 나타내기 위한 레지스터 선언
+reg [9:0]rgb;                   // rgb 대입을 위한 레지스터 선언 
+reg state;                // 상태에 따라 출력을 다르게 하기 위해 state 레지스터 선언
+parameter s0=1'd0, s1=1'd1;     // 버튼 입력에 따라 출력을 다르게 하기 위해 상태 파라미터 선언. 
+
+
+always @(*) begin               //  640 * 480 영억에만 출력을 나타내기 위한 active 선언 
+    active = active_h & active_v;
+end
+
+always @(posedge clk or posedge rst) begin  // 가로축 hsync를 back porch, front porch, active region, sync width로 분리 
+    if(rst) begin                           // 리셋 스위치 입력 시 조건 
+       counter_h <= 0;
+       hsync <= 0;
+       active_h <= 0;
+    end else if (counter_h < 'd799) begin   
+       counter_h <= counter_h + 1;
+       if (counter_h >= 'd0 && counter_h < 'd48) begin  // back porch 영역 
+            hsync <= 1; 
+            active_h <= 0;
+       end else if(counter_h >= 'd48 && counter_h < 'd688) begin    // active region
+            hsync <= 1;
+            active_h <= 1;
+       end else if(counter_h >= 'd688 && counter_h < 'd704) begin   // front porch 영역 
+            hsync <= 1;
+            active_h <= 0;
+       end else begin                                              // sync 영역에서 hsync = 0 
+            hsync <= 0;
+            active_h <= 0;
+       end
+    end  
+    else begin                                                      // 가로의 제일 오른쪽 pixel 도달할 경우, 다시 원점으로 돌아감 
+       counter_h <= 0;
+       hsync <= 0;
+       active_h <= 0; 
+    end
+      
+
+end
+always @(posedge clk or posedge rst) begin                      // hsync의 변화에 따른 vsync의 변화를 선언 
+    if (counter_h == 'd799)                                     // 가로 제일 오른쪽 pixel에 도달할 경우, counter_v값을 하나씩 증가시킴  
+        counter_v = counter_v + 1;
+    if (rst) begin                                              // 리셋 스위치 입력 시 카운터, active, sync 초기화 
+        counter_v <= 0;
+        active_v <= 0;
+        vsync <= 0;
+    end else if (counter_v < 'd524) begin                       // 전체 세로 영역에서의 움직임 기술 
+      if (counter_v >= 'd0 && counter_v < 'd33) begin           // back porch 영역 
+         vsync <= 1;
+         active_v <= 0;
+      end else if (counter_v >= 'd33 && counter_v < 'd513) begin    // active region 
+         vsync <= 1;
+         active_v <= 1;
+      end else if (counter_v >= 'd513 && counter_v < 'd523) begin   // front porch 영역 
+         vsync <= 1;
+         active_v <= 0;
+      end else begin                                               // sync width에서 vsync = 0으로 설정. 
+         vsync <= 0;
+         active_v <= 0;
+      end
+    end else begin                                                 // 세로축 최하단 도달시 counter_v 초기화 --> 원점으로 되돌아감. 
+        counter_v <= 0;
+        vsync <= 0;
+        active_v <= 0;
+    end
+end
+
+
+
+always @(*) begin                                               //스위치 입력에 따라 달라지는 상태 기술
+    if(btn == 2'b01)                                            // btn0만 입력 시 step1 출력 상태 
+        state = s0;                                                 
+    else if(btn == 2'b10)                                       // btn1만 입력 시 step2 출력 상태
+        state = s1;
+end
+
+always @(posedge clk) begin                                    // 각 상태에 대한 출력 서술
+    case(state)
+        s0: begin                                              // step1 출력 상태 서술 
+            if (counter_v>='d33 && counter_v<'d193)begin
+                r<=rgb*255/640;
+            end if (counter_v>='d193 && counter_v<'d353)begin
+                g<=rgb*255/640;
+            end if (counter_v>='d353 && counter_v<'d513)begin
+                b<=rgb*255/640;
+            end if (counter_h >= 'd0 && counter_h < 'd48) begin
+                rgb <='d0;
+        end else if(counter_h == 'd48 ) begin
+               rgb <='d640;
+            end else if(counter_h >= 'd49 && counter_h < 'd688) begin
+                rgb <=rgb-'d1;
+            end else if(rgb<=0) begin
+                rgb <='d0;
+            end else if(counter_h >= 'd688 && counter_h<= 'd800) begin
+                rgb <='d0;
+            end
+        end
+    
+        s1: begin                                            // step2 출력 상태 서술 
+            if (counter_h >= 48 && counter_h < 261) begin    // 좌측, BLUE만 출력하는 영역 
+                r <= 0;
+                g <= 0;
+                b <= 8'hFF;
+            end else if (counter_h >= 261 && counter_h < 476) begin // 중간측, WHITE 출력을 위해 RGB 모두 HIGH로 설정 
+                r <= 8'hFF;
+                g <= 8'hFF;
+                b <= 8'hFF;
+            end else if (counter_h >= 476 && counter_h <689) begin  // 우측 RED 출력하는 영역 
+                r <= 8'hFF;
+                g <= 0;
+                b <= 0;
+            end
+        end
+    endcase 
+end
+
+endmodule

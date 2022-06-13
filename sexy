@@ -1,0 +1,84 @@
+module display_controller(input rst, input clk, output hsync, output vsync, output reg [7:0]r, output reg [7:0]g, output reg [7:0]b, output reg active);
+
+reg vsync, hsync; // procedural assignment에서 대입을 위해 reg 타입 지정 
+reg [9:0] counter_h, counter_v; // 가로 한 줄, 세로 한 줄 진행을 위한 카운터 선언 
+reg active_h, active_v; // active pixel 상태를 나타내기 위한 레지스터 선언
+
+always @(*) begin
+    active = active_h & active_v;
+end
+  
+
+always @(posedge clk or posedge rst) begin
+    if(rst) begin
+       counter_h <= 0;
+       hsync <= 0;
+       active_h <= 0;
+    end else if (counter_h < 'd799) begin
+       counter_h <= counter_h + 1;
+       if (counter_h >= 'd0 && counter_h < 'd48) begin
+            hsync <= 1; 
+            active_h <= 0;
+       end else if(counter_h >= 'd48 && counter_h < 'd688) begin
+            hsync <= 1;
+            active_h <= 1;
+       end else if(counter_h >= 'd688 && counter_h < 'd704) begin
+            hsync <= 1;
+            active_h <= 0;
+       end else begin
+            hsync <= 0;
+            active_h <= 0;
+       end
+    end  
+    else begin
+       counter_h <= 0;
+       hsync <= 0;
+       active_h <= 0; 
+    end
+      
+
+end
+always @(posedge clk or posedge rst) begin
+    if (counter_h == 'd799) 
+        counter_v = counter_v + 1;
+    if (rst) begin  
+        counter_v <= 0;
+        active_v <= 0;
+        vsync <= 0;
+    end
+    else if (counter_v < 'd524) begin
+      if (counter_v >= 'd0 && counter_v < 'd33) begin
+         vsync <= 1;
+         active_v <= 0;
+      end else if (counter_v >= 'd33 && counter_v < 'd513) begin
+         vsync <= 1;
+         active_v <= 1;
+      end else if (counter_v >= 'd513 && counter_v < 'd523) begin
+         vsync <= 1;
+         active_v <= 0;
+      end else begin
+         vsync <= 0;
+         active_v <= 0;
+      end
+      end
+      else begin
+        counter_v <= 0;
+        vsync <= 0;
+        active_v <= 0;
+end
+end
+//active가 1일 경우에 rgb 할당하기  
+
+always @(*) begin
+   if(active == 1) begin
+              r = 'd255;
+              g = 0;
+              b = 0;
+    end
+   else begin
+        r = 0;
+        g = 0;
+        b = 0;
+    end
+end
+endmodule
